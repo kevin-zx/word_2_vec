@@ -3,32 +3,51 @@ import pandas as pd
 import pickle
 import jieba
 import os
+import math
 from tqdm import tqdm
 
 def load_stop_words(file = "stopwords.txt"):
     with open(file,"r",encoding = "utf-8") as f:
         return f.read().split("\n")
 
-def cut_words(file="数学原始数据.csv"):
+def cut_words(file="training_content.csv"):
+    if os.path.exists("cut_words.pkl"):
+        return load_cut_words()
     stop_words = load_stop_words()
     result = []
-    all_data = pd.read_csv(file,encoding = "gbk",names=["data"])["data"]
-    for words in all_data:
+    all_data = pd.read_csv(file,encoding = "utf-8",names=["data"])["data"]
+    for words in tqdm(all_data):
+        if not isinstance(words,str):
+            continue
         c_words = jieba.lcut(words)
         result.append([word for word in c_words if word not in stop_words])
     return result
 
+def save_cut_words(wors :list,file = "cut_words.pkl"):
+    with open(file,"wb") as f:
+        pickle.dump(wors,f)
+
+def load_cut_words(file = "cut_words.pkl")-> list:
+    with open(file,"rb") as f:
+        return pickle.load(f)
+
 def get_dict(data):
     index_2_word = []
+    print("get_dict convert word to index")
+    wordMap = {}
     for words in data:
         for word in words:
-            if word not in index_2_word:
-                index_2_word.append(word)
+            wordMap[word] = 1
+            #  if word not in index_2_word:
+            #      index_2_word.append(word)
 
+    index_2_word = list(wordMap.keys())
+    print("get_dict gen word index map")
     word_2_index = {word:index for index,word in enumerate(index_2_word)}
     word_size = len(word_2_index)
 
     word_2_onehot = {}
+    print("get_dict gen word onehot map")
     for word,index in word_2_index.items():
         one_hot = np.zeros((1,word_size))
         one_hot[0,index] = 1
